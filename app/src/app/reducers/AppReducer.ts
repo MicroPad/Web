@@ -9,6 +9,7 @@ import { ThemeName } from '../types/Themes';
 import { parse } from 'semver';
 import { isDev } from '../util';
 import { ZoomChange } from '../types/ActionTypes';
+import { ThemeValues } from '../ThemeValues';
 
 export interface IAppStoreState {
 	version: IVersion;
@@ -17,6 +18,7 @@ export interface IAppStoreState {
 	zoom: number;
 	showHelp: boolean;
 	theme: ThemeName;
+	explorerWidth: string;
 }
 
 export interface IVersion {
@@ -41,7 +43,8 @@ export class AppReducer extends MicroPadReducer<IAppStoreState> {
 		defaultFontSize: '16px',
 		zoom: 1,
 		showHelp: true,
-		theme: 'Classic'
+		theme: 'Classic',
+		explorerWidth: '280px'
 	};
 
 	public reducer(state: IAppStoreState, action: Action): IAppStoreState {
@@ -87,9 +90,15 @@ export class AppReducer extends MicroPadReducer<IAppStoreState> {
 				showHelp: action.payload
 			};
 		} else if (isType(action, actions.selectTheme)) {
+			const themeName = action.payload;
 			return {
 				...state,
-				theme: action.payload
+				theme: ThemeValues[themeName] ? action.payload : 'Classic'
+			};
+		} else if (isType(action, actions.setExplorerWidth)) {
+			return {
+				...state,
+				explorerWidth: action.payload
 			};
 		}
 

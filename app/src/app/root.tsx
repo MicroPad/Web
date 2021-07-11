@@ -1,21 +1,27 @@
+/* Special Imports */
+// @ts-ignore
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import helpNpx from '!raw-loader!./assets/Help.npx';
 /* CSS Imports */
+import '@fontsource/abeezee';
 import 'material-icons-font/material-icons-font.css';
-import 'materialize-css/dist/css/materialize.min.css'; // TODO: Roboto will need to be imported here when this isn't
+import 'materialize-css/dist/css/materialize.min.css';
 import './root.css';
+import './ScrollbarPatch.css';
 /* Themes */
-import './theme-styles/Classic.css';
 import './theme-styles/Solarized.css';
-import './theme-styles/IanPad.css';
 import './theme-styles/Midnight.css';
 import './theme-styles/Void.css';
+import './theme-styles/Wellington.css';
+import './theme-styles/Peach.css';
+import './theme-styles/Pastel.css';
 import './theme-styles/Purple.css';
 /* JS Imports */
 import * as React from 'react';
-import 'jquery/dist/jquery.slim.js'; // TODO: Yeet this when Materialize is removed
 import 'materialize-css/dist/js/materialize.js';
 import * as serviceWorker from '../registerServiceWorker';
-import { APP_NAME, IAppWindow, MICROPAD_URL } from './types';
-import { applyMiddleware, createStore } from 'redux';
+import { APP_NAME, MICROPAD_URL } from './types';
+import { applyMiddleware, compose, createStore } from 'redux';
 import { BaseReducer } from './reducers/BaseReducer';
 import { epicMiddleware } from './epics';
 import { composeWithDevTools } from 'redux-devtools-extension';
@@ -27,10 +33,9 @@ import HeaderComponent from './containers/header/HeaderContainer';
 import NotepadExplorerComponent from './components/explorer/NotepadExplorerContainer';
 import NoteViewerComponent from './containers/NoteViewerContainer';
 import { enableKeyboardShortcuts } from './services/shortcuts';
-import * as QueryString from 'querystring';
 import * as PasteImage from 'paste-image';
 import PrintViewOrAppContainerComponent from './containers/PrintViewContainer';
-import WhatsNewModalComponent from './components/WhatsNewModalComponent';
+import NoteElementModalComponent from './components/note-element-modal/NoteElementModalComponent';
 import { SyncUser } from './types/SyncTypes';
 import { SyncProErrorComponent } from './components/sync/SyncProErrorComponent';
 import InsertElementComponent from './containers/InsertElementContainer';
@@ -39,6 +44,10 @@ import AppBodyComponent from './containers/AppBodyContainer';
 import ToastEventHandler from './services/ToastEventHandler';
 import { LastOpenedNotepad } from './epics/StorageEpics';
 import { noop } from './util';
+import { createSentryReduxEnhancer } from '../sentry';
+import { createDynamicCss } from './DynamicAppCss';
+
+window.MicroPadGlobals = {};
 
 try {
 	document.domain = MICROPAD_URL.split('//')[1];
@@ -50,7 +59,7 @@ const baseReducer: BaseReducer = new BaseReducer();
 export const store = createStore(
 	baseReducer.reducer,
 	baseReducer.initialState,
-	composeWithDevTools(applyMiddleware(epicMiddleware))
+	composeWithDevTools(compose(applyMiddleware(epicMiddleware), createSentryReduxEnhancer()))
 );
 
 export const TOAST_HANDLER = new ToastEventHandler();
@@ -70,10 +79,18 @@ export const SYNC_STORAGE = localforage.createInstance({
 	storeName: 'sync'
 });
 
+export const SETTINGS_STORAGE = localforage.createInstance({
+	name: 'MicroPad',
+	storeName: 'settings'
+});
+
 export type StorageMap = {
 	notepadStorage: LocalForage,
 	assetStorage: LocalForage,
 	syncStorage: LocalForage,
+	settingsStorage: LocalForage,
+
+	/** @deprecated Use settingsStorage instead */
 	generalStorage: LocalForage
 };
 
@@ -82,6 +99,7 @@ export function getStorage(): StorageMap {
 		notepadStorage: NOTEPAD_STORAGE,
 		assetStorage: ASSET_STORAGE,
 		syncStorage: SYNC_STORAGE,
+		settingsStorage: SETTINGS_STORAGE,
 		generalStorage: localforage
 	};
 }
@@ -89,8 +107,9 @@ export function getStorage(): StorageMap {
 (async function init() {
 	if (!await compatibilityCheck()) return;
 	await hydrateStoreFromLocalforage();
+	createDynamicCss(store);
 
-	if ((window as IAppWindow).isElectron) store.dispatch(actions.checkVersion(undefined));
+	if (window.isElectron) store.dispatch(actions.checkVersion(undefined));
 	store.dispatch(actions.getNotepadList.started(undefined));
 	store.dispatch(actions.indexNotepads.started(undefined));
 
@@ -98,7 +117,7 @@ export function getStorage(): StorageMap {
 
 	// Render the main UI
 	ReactDOM.render(
-		<Provider store={store as any}>
+		<Provider store={store}>
 			{/*
 			// @ts-ignore TODO: Type has no properties in common with type 'IntrinsicAttributes & Pick ClassAttributes PrintViewOrAppContainerComponent & IPrintViewComponentProps & IAppProps, "ref" | "key">' */}
 			<PrintViewOrAppContainerComponent>
@@ -106,7 +125,7 @@ export function getStorage(): StorageMap {
 				<AppBodyComponent>
 					<NoteViewerComponent />
 					<NotepadExplorerComponent />
-					<WhatsNewModalComponent />
+					<NoteElementModalComponent id={"whats-new-modal"} npx={helpNpx} findNote={np => np.sections[0].notes[2]} />
 					<SyncProErrorComponent />
 					<InsertElementComponent />
 				</ AppBodyComponent>
@@ -135,7 +154,7 @@ export function getStorage(): StorageMap {
 })();
 
 async function hydrateStoreFromLocalforage() {
-	await Promise.all([NOTEPAD_STORAGE.ready(), ASSET_STORAGE.ready(), SYNC_STORAGE.ready()]);
+	await Promise.all(Object.values(getStorage()).map(storage => storage.ready()));
 
 	const fontSize = await localforage.getItem<string>('font size');
 	if (!!fontSize) store.dispatch(actions.updateDefaultFontSize(fontSize));
@@ -169,8 +188,14 @@ async function compatibilityCheck(): Promise<boolean> {
 		testIframe.srcdoc = 'test';
 		return testIframe.getAttribute('srcdoc') === 'test';
 	}
+	function hasUrlHelperClasses(): boolean {
+		try {
+			const url = new URL('https://example.com');
+			return !!new URLSearchParams(url.search);
+		} catch (_) { return false; }
+	}
 
-	if (!doesSupportSrcDoc()) {
+	if (!(doesSupportSrcDoc() && hasUrlHelperClasses())) {
 		ReactDOM.render(
 			<div style={{ margin: '10px' }}>
 				<h1>Bad news <span role="img" aria-label="sad face">😢</span></h1>
@@ -196,14 +221,22 @@ async function displayWhatsNew() {
 	if (minorVersion === oldMinorVersion) return;
 
 	// Open "What's New"
-	document.getElementById('whats-new-modal-trigger')!.click();
+	setTimeout(() => {
+		const whatsNewModal = document.getElementById('whats-new-modal');
+		if (whatsNewModal) {
+			M.Modal.getInstance(whatsNewModal).open();
+		} else {
+			console.error('Missing whats new modal');
+		}
+	}, 0);
+
 	await localforage.setItem('oldMinorVersion', minorVersion);
 }
 
 function notepadDownloadHandler() {
 	// eslint-disable-next-line no-restricted-globals
-	const downloadNotepadUrl = QueryString.parse(location.search.slice(1)).download;
-	if (!!downloadNotepadUrl && typeof downloadNotepadUrl === 'string') store.dispatch(actions.downloadNotepad.started(downloadNotepadUrl));
+	const downloadNotepadUrl = new URLSearchParams(location.search).get('download');
+	if (!!downloadNotepadUrl) store.dispatch(actions.downloadNotepad.started(downloadNotepadUrl));
 }
 
 function pasteWatcher() {
@@ -222,7 +255,7 @@ function pasteWatcher() {
 // If you want your app to work offline and load faster, you can change
 // unregister() to register() below. Note this comes with some pitfalls.
 // Learn more about service workers: https://bit.ly/CRA-PWA
-if ((window as IAppWindow).isElectron) {
+if (window.isElectron) {
 	serviceWorker.unregister();
 } else {
 	serviceWorker.register();

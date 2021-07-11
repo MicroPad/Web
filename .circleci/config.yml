@@ -7,7 +7,7 @@ jobs:
   test:
     docker:
       # specify the version you desire here
-      - image: circleci/rust:latest-node
+      - image: cimg/rust:1.52-node
       
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -16,29 +16,24 @@ jobs:
 
     working_directory: ~/repo
 
+    environment:
+      NODE_ENV: development
+
     steps:
       - checkout
-
-      - restore_cache:
-          name: Restore Yarn Package Cache
-          keys:
-            - yarn-packages-{{ .Branch }}-{{ checksum "app/yarn.lock" }}
-            - yarn-packages-{{ .Branch }}
-            - yarn-packages-master
-            - yarn-packages-
-
       - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - run: cd app && yarn
+      - run: cd app && yarn global add playwright && yarn playwright install-deps
 
-      - save_cache:
-          name: Save Yarn Package Cache
-          key: yarn-packages-{{ .Branch }}-{{ checksum "app/yarn.lock" }}
-          paths:
-            - app/node_modules/
-        
-      # run tests!
-      - run: cd app && yarn typecheck
-      - run: cd app && yarn lint
+      # Load in the built MicroPad to run an instance for testing
+      - attach_workspace:
+          at: /tmp/mp-build
+      - run:
+          command: python3 -m http.server 3000
+          working_directory: /tmp/mp-build/build
+          background: true
+
+      # Run the e2e integration tests
       - run: cd app && yarn test
 
   build:
@@ -65,6 +60,11 @@ jobs:
           paths:
             - app/node_modules/
 
+      # Validate if we're building good code
+      - run: cd app && yarn typecheck
+      - run: cd app && yarn lint
+
+      # Actually build the code, and then persist the result
       - run: cd app && yarn build && tar cfJ micropad.tar.xz build/*
       - store_artifacts:
           path: app/micropad.tar.xz
@@ -116,14 +116,10 @@ workflows:
   version: 2
   test-and-deploy:
     jobs:
+      - build
       - test:
-          filters:
-            tags:
-              only: /^v.*/
-      - build:
-          filters:
-            tags:
-              only: /^v.*/
+          requires:
+            - build
       - publish-github-release:
           requires:
             - test

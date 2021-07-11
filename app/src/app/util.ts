@@ -1,7 +1,16 @@
 import { filter } from 'rxjs/operators';
 import { SyntheticEvent } from 'react';
-import * as QueryString from 'querystring';
 import { FlatNotepad } from 'upad-parse/dist';
+import { ModalOptions } from 'react-materialize';
+
+export const DEFAULT_MODAL_OPTIONS: ModalOptions = {
+	onOpenEnd: (modal: HTMLElement) => {
+		window.MicroPadGlobals.currentModalId = modal.id;
+	},
+	onCloseEnd: () => {
+		delete window.MicroPadGlobals.currentModalId;
+	}
+};
 
 export const filterTruthy = <T>() => filter((a: T | undefined | null | false): a is T => !!a);
 
@@ -9,8 +18,9 @@ export const noEmit = () => filter((_a): _a is never => false);
 
 export function isDev(): boolean {
 	/* eslint-disable no-restricted-globals */
+	const params = new URLSearchParams(location.search);
 	return (
-		!QueryString.parse(location.search.slice(1)).prod
+		!params.get('prod')
 		&& (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === 'next.getmicropad.com')
 	);
 	/* eslint-enable no-restricted-globals */
@@ -71,9 +81,8 @@ export function getBytes(blob: Blob): Promise<ArrayBuffer> {
 
 export function getUsedAssets(notepad: FlatNotepad): Set<string> {
 	return new Set(
-		Object.values(notepad.notes)
-		.map(
-			n => n.elements
+		Object.values(notepad.notes).map(n =>
+			n.elements
 				.map(e => e.args.ext)
 				.filter((a?: string): a is string => !!a)
 		)
@@ -139,3 +148,12 @@ export function unreachable() {
 }
 
 export function noop() {}
+
+export function openModal(id: string) {
+	const modalEl = document.getElementById(id);
+	if (!modalEl) {
+		throw new Error(`${id} is not a modal because it doesn't exist in th DOM.`);
+	}
+
+	M.Modal.getInstance(modalEl).open();
+}

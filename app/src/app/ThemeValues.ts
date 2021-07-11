@@ -17,6 +17,7 @@ export const ThemeValues: { [K in ThemeName]: ITheme } = {
 		text: '#000',
 		links: '#039be5',
 		explorerContent: '#fff',
+		accentContent: '#fff',
 		backgroundImage: classicBackground,
 		instructionImages: {
 			notepad: instructionImageLight,
@@ -31,26 +32,13 @@ export const ThemeValues: { [K in ThemeName]: ITheme } = {
 		text: '#839496',
 		links: '#eee8d5',
 		explorerContent: '#eee8d5',
+		accentContent: '#eee8d5',
 		backgroundImage: filledBackground,
 		drawingBackground: '#ffffff30',
 		instructionImages: {
 			notepad: instructionImageDark,
 			note: noteInstructionsDark,
 			element: elementInstructionsDark
-		}
-	},
-	IanPad: {
-		background: '#B9F6CA',
-		accent: '#fdff19',
-		chrome: '#40af3a',
-		text: '#000',
-		links: '#039be5',
-		explorerContent: '#fff',
-		backgroundImage: filledBackground,
-		instructionImages: {
-			notepad: instructionImageLight,
-			note: noteInstructionsLight,
-			element: elementInstructionsLight
 		}
 	},
 	Midnight: {
@@ -60,6 +48,7 @@ export const ThemeValues: { [K in ThemeName]: ITheme } = {
 		text: '#ddd',
 		links: '#039be5',
 		explorerContent: '#ddd',
+		accentContent: '#ddd',
 		backgroundImage: filledBackground,
 		drawingBackground: '#ffffff30',
 		instructionImages: {
@@ -75,12 +64,58 @@ export const ThemeValues: { [K in ThemeName]: ITheme } = {
 		text: '#ddd',
 		links: '#039be5',
 		explorerContent: '#ddd',
+		accentContent: '#ddd',
 		backgroundImage: filledBackground,
 		drawingBackground: '#ffffff30',
 		instructionImages: {
 			notepad: instructionImageDark,
 			note: noteInstructionsDark,
 			element: elementInstructionsDark
+		}
+	},
+	Peach: {
+		background: '#fdd1a4',
+		accent: '#fde7a4',
+		chrome: '#fdc3a4',
+		text: '#000',
+		links: '#444',
+		explorerContent: '#333',
+		accentContent: '#333',
+		backgroundImage: filledBackground,
+		instructionImages: {
+			notepad: instructionImageLight,
+			note: noteInstructionsLight,
+			element: elementInstructionsLight
+		}
+	},
+	Pastel: {
+		background: '#f7f2e7',
+		accent: '#d8d3cd',
+		chrome: '#e0ece4',
+		text: '#000',
+		links: '#444',
+		explorerContent: '#333',
+		accentContent: '#333',
+		backgroundImage: filledBackground,
+		instructionImages: {
+			notepad: instructionImageLight,
+			note: noteInstructionsLight,
+			element: elementInstructionsLight
+		}
+	},
+	Wellington: {
+		background: '#F4FFF8',
+		accent: '#5fa7a0',
+		chrome: '#a7ded8',
+		text: '#000',
+		links: '#444',
+		explorerContent: '#333',
+		accentContent: '#333',
+		backgroundImage: filledBackground,
+		instructionImages: {
+			notepad: instructionImageLight,
+			note: noteInstructionsLight,
+			element: elementInstructionsLight
 		}
 	},
 	Purple: {
@@ -90,6 +125,22 @@ export const ThemeValues: { [K in ThemeName]: ITheme } = {
 		text: '#000',
 		links: '#039be5',
 		explorerContent: '#fff',
+		accentContent: '#666',
+		backgroundImage: filledBackground,
+		instructionImages: {
+			notepad: instructionImageLight,
+			note: noteInstructionsLight,
+			element: elementInstructionsLight
+		}
+	},
+	IanPad: {
+		background: '#B9F6CA',
+		accent: '#fdff19',
+		chrome: '#40af3a',
+		text: '#000',
+		links: '#039be5',
+		explorerContent: '#fff',
+		accentContent: '#666',
 		backgroundImage: filledBackground,
 		instructionImages: {
 			notepad: instructionImageLight,
